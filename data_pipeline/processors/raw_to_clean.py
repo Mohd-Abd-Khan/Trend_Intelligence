@@ -26,10 +26,10 @@ class DataProcessor:
 
     def process(self):
         if not os.path.exists(self.input_file):
-            print(f"❌ Error: {self.input_file} not found!")
+            print(f"[ERROR] Error: {self.input_file} not found!")
             return
 
-        print(f"🧹 Cleaning data from {self.input_file}...")
+        print(f"[INFO] Cleaning data from {self.input_file}...")
         df = pd.read_csv(self.input_file)
 
         # Apply cleaning to Title and Text
@@ -51,13 +51,15 @@ class DataProcessor:
         # df = df.drop(columns=['title', 'text', 'comments'])
 
         df.to_csv(self.output_file, index=False)
-        print(f"✅ Success! Cleaned data saved to {self.output_file}")
+        print(f"[SUCCESS] Success! Cleaned data saved to {self.output_file}")
 
 if __name__ == "__main__":
-    # Define paths relative to the processor folder using absolute path logic
-    BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    raw_path = os.path.join(BASE_DIR, "collectors", "reddit_data.csv")
-    clean_path = os.path.join(BASE_DIR, "collectors", "reddit_data_cleaned.csv")
+    import sys
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from config import config
+
+    raw_path = config.RAW_DATA_PATH
+    clean_path = config.CLEAN_DATA_PATH
 
     processor = DataProcessor(raw_path, clean_path)
     processor.process()

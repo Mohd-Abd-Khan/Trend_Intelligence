@@ -20,7 +20,10 @@ class Config:
     
     POST_LIMIT = 50       # Number of posts per category
     COMMENT_LIMIT = 5     # Number of comments per post
-    USER_AGENT = "python:trend_intelligence:v1.0 (by /u/abdullah_khan_nitw)"
+    USER_AGENT = "pc:trend_intelligence:v1.0 (by /u/abdullah_khan_nitw)"
+    
+    REDDIT_CLIENT_ID = os.getenv("REDDIT_CLIENT_ID", "")
+    REDDIT_CLIENT_SECRET = os.getenv("REDDIT_CLIENT_SECRET", "")
 
     # 🗄️ 3. Database Configurations
     # Postgres (SQL)

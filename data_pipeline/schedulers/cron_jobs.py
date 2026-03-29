@@ -1,4 +1,5 @@
 import schedule
+import sys
 import time
 import subprocess
 import os
@@ -13,19 +14,19 @@ LOADER = os.path.join(BASE_DIR, "loaders", "db_loader.py")
 
 def run_task(script_path, task_name):
     """Helper function to execute a python script and log the result."""
-    print(f"--- 🚀 Starting {task_name} at {datetime.now()} ---")
+    print(f"--- [START] Starting {task_name} at {datetime.now()} ---")
     try:
-        # Runs the script as a separate process
-        result = subprocess.run(["python", script_path], check=True, capture_output=True, text=True)
-        print(f"✅ {task_name} Finished successfully.")
+        # Runs the script as a separate process utilizing the same python executable (venv)
+        result = subprocess.run([sys.executable, script_path], check=True, capture_output=True, text=True)
+        print(f"[SUCCESS] {task_name} Finished successfully.")
         return True
     except subprocess.CalledProcessError as e:
-        print(f"❌ Error in {task_name}: {e.stderr}")
+        print(f"[ERROR] Error in {task_name}: {e.stderr}")
         return False
 
 def full_pipeline_job():
     """The master sequence that runs the entire ETL process."""
-    print(f"\n🔔 SCHEDULED RUN STARTED: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"\n[ALERT] SCHEDULED RUN STARTED: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     
     # 1. Extraction
     if run_task(COLLECTOR, "Data Collection"):
@@ -34,7 +35,7 @@ def full_pipeline_job():
             # 3. Loading (Only if cleaning succeeded)
             run_task(LOADER, "Database Loading")
             
-    print(f"🏁 PIPELINE RUN FINISHED at {datetime.now()}\n")
+    print(f"[END] PIPELINE RUN FINISHED at {datetime.now()}\n")
 
 # --- 🕒 SET THE SCHEDULE ---
 # Option A: Run every hour for testing
@@ -47,7 +48,7 @@ schedule.every(1).hours.do(full_pipeline_job)
 # schedule.every(10).minutes.do(full_pipeline_job)
 
 if __name__ == "__main__":
-    print("🤖 Scheduler is active and waiting for the next run...")
+    print("[INFO] Scheduler is active and waiting for the next run...")
     print("Press Ctrl+C to stop the scheduler.")
     
     # Run once immediately on startup so you don't have to wait for the first hour

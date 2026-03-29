@@ -4,14 +4,19 @@ from datetime import datetime
 import time
 from tqdm import tqdm
 import os
+import sys
 
-# 🔹 FIX 1: Use a very specific User-Agent to avoid being flagged as a "bad bot"
+# Add the parent directory to the path so we can import config
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from config import config
+
+# Use the strict User-Agent from config
 HEADERS = {
-    "User-Agent": "pc:trend_intelligence_collector:v1.0 (by /u/abdullah_khan_nitw)"
+    "User-Agent": config.USER_AGENT
 }
 
 BATCH_SIZE = 25  # Reduced batch size slightly for better stability
-LIMIT_COMMENTS = 5
+LIMIT_COMMENTS = config.COMMENT_LIMIT
 
 session = requests.Session()
 session.headers.update(HEADERS)
@@ -27,7 +32,7 @@ def fetch_comments(subreddit, post_id):
             if len(data) > 1:
                 comment_data = data[1]['data']['children']
                 comments = [c['data'].get('body', '') for c in comment_data if c['kind'] == 't1']
-                return " | ".join(comments)
+                return " | ".join(comments) if comments else "No Comments"
     except:
         return "No Comments (Timeout)"
     return "No Comments"
@@ -47,11 +52,11 @@ def fetch_reddit_data(source_type, query, total_needed):
         }
 
         try:
-            # FIX 2: Increased timeout for the main post list
+            # Increased timeout for the main post list
             response = session.get(base_url, params=params, timeout=10)
             
             if response.status_code == 429:
-                # FIX 3: Longer back-off sleep if Reddit blocks us
+                # Longer back-off sleep if Reddit blocks us
                 time.sleep(10)
                 continue
                 
@@ -70,6 +75,7 @@ def fetch_reddit_data(source_type, query, total_needed):
                 comments = fetch_comments(p.get("subreddit"), p.get("id"))
 
                 all_posts.append({
+                    "post_id": p.get("id"),  # Retained the post_id mapping to allow upserts!
                     "title": p.get("title"),
                     "text": p.get("selftext", "No Text"),
                     "comments": comments,
@@ -97,25 +103,28 @@ def fetch_reddit_data(source_type, query, total_needed):
     return all_posts
 
 def build_dataset():
-    # Reduced numbers slightly to ensure the pipeline finishes quickly for testing
-    subreddits = ["technology", "news", "science"]
-    keywords = ["AI", "Nvidia"]
+    # Utilizing configuration settings instead of hardcoding
+    subreddits = config.SUBREDDITS
+    keywords = config.KEYWORDS
+    total_needed = 20 # Can be adjusted or pulled from config.POST_LIMIT later 
     
     final_list = []
     
-    print("🚀 Starting Data Collection...")
+    print("[INFO] Starting Data Collection via manual HTTP JSON requests...")
     for sub in subreddits:
-        final_list.extend(fetch_reddit_data("subreddit", sub, 20))
+        final_list.extend(fetch_reddit_data("subreddit", sub, total_needed))
     for key in keywords:
-        final_list.extend(fetch_reddit_data("keyword", key, 20))
+        final_list.extend(fetch_reddit_data("keyword", key, total_needed))
         
     if final_list:
         df = pd.DataFrame(final_list)
-        save_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "reddit_data.csv")
+        # Using central config file path
+        save_path = config.RAW_DATA_PATH
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
         df.to_csv(save_path, index=False)
-        print(f"\n✅ Done! Saved {len(df)} rows to {save_path}")
+        print(f"\n[SUCCESS] Done! Saved {len(df)} rows to {save_path}")
     else:
-        print("\n❌ No data collected. Check your internet or Reddit status.")
+        print("\n[ERROR] No data collected. Check your internet, Reddit status, or rate limits.")
 
 if __name__ == "__main__":
     build_dataset()
